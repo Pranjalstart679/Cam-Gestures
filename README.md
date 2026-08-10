@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Gesture-Controlled Laptop Interface
 
 A local Windows desktop application that uses a normal webcam to make gesture-based control feel like a touchscreen. All processing runs on the laptop: there is no backend, cloud service, database, API, voice feature, or automatic keyboard shortcut.
@@ -135,3 +136,7 @@ Press `Esc` or `Q` in the preview window to close it. Closing the preview window
 ## Roadmap
 
 The next implementation phase is index-finger cursor movement with a configurable control region and smoothing. Gesture actions, PyAutoGUI, state transitions, and configuration must be built before any actual mouse control is enabled. Voice activation, cloud services, and automatic keyboard shortcuts remain intentionally out of scope.
+=======
+# Cam-Gestures
+Gestures contorlled webcam for control
+>>>>>>> 66ac9d8ef95acc154e6d221d2c1fb17d284cc579
