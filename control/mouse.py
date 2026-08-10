@@ -32,31 +32,35 @@ class MouseController:
         width, height = self.screen_size()
         bounded_x = min(max(x, 0), width - 1)
         bounded_y = min(max(y, 0), height - 1)
-        try:
-            self._pyautogui.moveTo(bounded_x, bounded_y, duration=0)
-        except self._pyautogui.FailSafeException as error:
-            raise MouseControlError("PyAutoGUI fail-safe triggered; move away from a screen corner and restart.") from error
+        self._perform(self._pyautogui.moveTo, bounded_x, bounded_y, duration=0)
 
     def click(self) -> None:
         """Perform one left click. Reserved for a later phase."""
-        self._pyautogui.click()
+        self._perform(self._pyautogui.click)
 
     def right_click(self) -> None:
         """Perform one right click. Reserved for a later phase."""
-        self._pyautogui.rightClick()
+        self._perform(self._pyautogui.rightClick)
 
     def double_click(self) -> None:
         """Perform one double click. Reserved for a later phase."""
-        self._pyautogui.doubleClick()
+        self._perform(self._pyautogui.doubleClick)
 
     def mouse_down(self) -> None:
         """Hold the primary mouse button. Reserved for a later phase."""
-        self._pyautogui.mouseDown()
+        self._perform(self._pyautogui.mouseDown)
 
     def mouse_up(self) -> None:
         """Release the primary mouse button. Reserved for a later phase."""
-        self._pyautogui.mouseUp()
+        self._perform(self._pyautogui.mouseUp)
 
     def scroll(self, amount: int) -> None:
         """Scroll vertically. Reserved for a later phase."""
-        self._pyautogui.scroll(amount)
+        self._perform(self._pyautogui.scroll, amount)
+
+    def _perform(self, operation: Any, *args: Any, **kwargs: Any) -> None:
+        """Run one PyAutoGUI action and turn its emergency stop into an app error."""
+        try:
+            operation(*args, **kwargs)
+        except self._pyautogui.FailSafeException as error:
+            raise MouseControlError("PyAutoGUI fail-safe triggered; move away from a screen corner and restart.") from error

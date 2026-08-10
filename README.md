@@ -3,7 +3,7 @@
 
 A local Windows desktop application that uses a normal webcam to make gesture-based control feel like a touchscreen. All processing runs on the laptop: there is no backend, cloud service, database, API, voice feature, or automatic keyboard shortcut.
 
-**Current implementation:** Phases 1–3 are complete. Hand tracking is live; index-finger cursor movement is available only when explicitly enabled. Clicking, scrolling, dragging, and keyboard actions are not implemented.
+**Current implementation:** Phases 1–5 are complete. Cursor movement, pinch clicking, and two-finger scrolling are available only when explicitly enabled. Dragging and keyboard actions are not implemented.
 
 ## Current features
 
@@ -14,6 +14,8 @@ A local Windows desktop application that uses a normal webcam to make gesture-ba
 - Releases the camera and closes OpenCV windows on exit.
 - Uses `Esc` or `Q` to quit the preview.
 - Supports opt-in index-finger cursor movement with a visible control region and configurable exponential smoothing.
+- Supports opt-in pinch-to-click after temporal confirmation, with a cooldown and one click per pinch.
+- Supports opt-in two-finger vertical scrolling with bounded sensitivity.
 
 ## Target architecture
 
@@ -35,7 +37,7 @@ Cam-Gestures/
 │   ├── mouse.py                    # PyAutoGUI mouse adapter
 │   ├── cursor.py                   # Cursor mapping and smoothing
 │   ├── keyboard.py                 # Later: isolated keyboard adapter
-│   └── actions.py                  # Later: gesture event -> allowed desktop action
+│   └── actions.py                  # Gesture event -> explicit allowed mouse action
 ├── core/
 │   ├── __init__.py
 │   ├── constants.py                # Later: shared enums/constants
@@ -118,6 +120,12 @@ To turn on cursor movement, use the explicit opt-in flag. It moves the cursor on
 .\.venv\Scripts\python.exe main.py --enable-cursor
 ```
 
+To enable Phase 4 and 5 actions as well, add the action opt-in flag. Keep the preview window focused so `Esc` can stop the application immediately.
+
+```powershell
+.\.venv\Scripts\python.exe main.py --enable-cursor --enable-gesture-actions
+```
+
 Press `Esc` or `Q` in the preview window to close it. Closing the preview window also stops the program.
 
 ## Implementation status
@@ -127,8 +135,8 @@ Press `Esc` or `Q` in the preview window to close it. Closing the preview window
 | 1 | Webcam capture, preview, safe release, `Esc`/`Q` exit | Complete |
 | 2 | MediaPipe hand detection, normalized landmarks, landmark drawing | Complete |
 | 3 | Index-finger cursor mapping, control region, smoothing | Complete; enabled only with `--enable-cursor` |
-| 4 | Pinch-to-click with transition detection and cooldown | Not started |
-| 5 | Two-finger scrolling | Not started |
+| 4 | Pinch-to-click with transition detection and cooldown | Complete; enabled only with `--enable-gesture-actions` |
+| 5 | Two-finger scrolling | Complete; enabled only with `--enable-gesture-actions` |
 | 6 | Fist drag with guaranteed mouse release | Not started |
 | 7 | `IDLE`, `ACTIVE`, `DRAGGING`, `SCROLLING`, `COOLDOWN` state manager | Not started |
 | 8 | JSON configuration system | Not started |
@@ -144,7 +152,7 @@ Press `Esc` or `Q` in the preview window to close it. Closing the preview window
 
 ## Roadmap
 
-The next implementation phase is guarded pinch-to-click, using gesture transitions and a cooldown to prevent repeated clicks. Voice activation, cloud services, and automatic keyboard shortcuts remain intentionally out of scope.
+The next implementation phase is fist dragging with guaranteed mouse-button release on every exit path. Voice activation, cloud services, and automatic keyboard shortcuts remain intentionally out of scope.
 =======
 # Cam-Gestures
 Gestures contorlled webcam for control

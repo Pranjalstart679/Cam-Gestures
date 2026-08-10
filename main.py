@@ -1,4 +1,4 @@
-"""Phase 2 entry point: show a mirrored webcam preview with hand landmarks.
+"""Phase 5 entry point: webcam gesture control with explicit action opt-ins.
 
 No gesture recognition or desktop-control actions are enabled in this phase.
 Press Esc or Q while the preview has focus to quit.
@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import argparse
 import sys
+from time import monotonic
 
 import cv2
 
-from vision.camera import CameraError, WebcamCamera
-from vision.hand_tracker import HandTracker, HandTrackerError
+from control.actions import GestureActionRouter
 from control.cursor import ControlRegion, CursorMapper, ExponentialSmoother
 from control.mouse import MouseControlError, MouseController
+from vision.camera import CameraError, WebcamCamera
+from vision.gesture_detector import Gesture, GestureDetector
+from vision.hand_tracker import HandTracker, HandTrackerError
 
 
 WINDOW_TITLE = "Gesture Control - Hand Tracking"
@@ -29,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--enable-cursor",
         action="store_true",
-        help="Opt in to index-finger cursor movement (no clicking is implemented).",
+        help="Opt in to index-finger cursor movement.",
     )
     parser.add_argument(
         "--cursor-smoothing",
@@ -45,6 +48,15 @@ def parse_args() -> argparse.Namespace:
         default=(0.20, 0.20, 0.80, 0.80),
         help="Normalized camera region that maps to the entire screen.",
     )
+    parser.add_argument(
+        "--enable-gesture-actions",
+        action="store_true",
+        help="Opt in to pinch clicking and two-finger scrolling.",
+    )
+    parser.add_argument("--pinch-threshold", type=float, default=0.38, help="Relative thumb/index pinch threshold.")
+    parser.add_argument("--pinch-frames", type=int, default=3, help="Frames required to confirm a pinch.")
+    parser.add_argument("--click-cooldown", type=float, default=0.20, help="Minimum seconds between pinch clicks.")
+    parser.add_argument("--scroll-sensitivity", type=float, default=1.0, help="Two-finger scroll sensitivity.")
     return parser.parse_args()
 
 
@@ -55,12 +67,23 @@ def run() -> int:
     try:
         region = ControlRegion(*args.control_region)
         smoother = ExponentialSmoother(args.cursor_smoothing)
+        detector = GestureDetector(args.pinch_threshold)
         with WebcamCamera(args.camera_index, args.width, args.height) as camera, HandTracker() as tracker:
-            mouse = MouseController() if args.enable_cursor else None
+            mouse = MouseController() if args.enable_cursor or args.enable_gesture_actions else None
             cursor_mapper = None
             if mouse is not None:
                 screen_width, screen_height = mouse.screen_size()
                 cursor_mapper = CursorMapper(screen_width, screen_height, region)
+            action_router = (
+                GestureActionRouter(
+                    mouse,
+                    pinch_confirmation_frames=args.pinch_frames,
+                    click_cooldown_seconds=args.click_cooldown,
+                    scroll_sensitivity=args.scroll_sensitivity,
+                )
+                if args.enable_gesture_actions and mouse is not None
+                else None
+            )
 
             cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
 
@@ -85,6 +108,10 @@ def run() -> int:
                     2,
                 )
 
+                observation = detector.detect(hands[0]) if hands else None
+                gesture_name = observation.gesture.name if observation is not None else Gesture.NONE.name
+                action_result = action_router.update(observation, monotonic()) if action_router is not None else None
+
                 cursor_label = "Cursor: preview only"
                 if hands:
                     fingertip = hands[0].landmarks[8]  # MediaPipe index fingertip landmark.
@@ -95,17 +122,42 @@ def run() -> int:
                         (0, 255, 255),
                         -1,
                     )
-                    if cursor_mapper is not None and mouse is not None:
+                    if (
+                        observation is not None
+                        and observation.gesture is Gesture.INDEX_POINT
+                        and args.enable_cursor
+                        and cursor_mapper is not None
+                        and mouse is not None
+                    ):
                         smoothed_point = smoother.update(cursor_mapper.map(fingertip.x, fingertip.y))
                         mouse.move(smoothed_point.x, smoothed_point.y)
                         cursor_label = f"Cursor: {smoothed_point.x}, {smoothed_point.y}"
                 else:
                     smoother.reset()
 
+                action_label = "Actions: disabled"
+                if action_result is not None:
+                    if action_result.clicked:
+                        action_label = "Action: left click"
+                    elif action_result.scroll_amount:
+                        action_label = f"Action: scroll {action_result.scroll_amount:+d}"
+                    else:
+                        action_label = "Actions: ready"
+
                 cv2.putText(
                     frame,
-                    f"Hands: {len(hands)} | {cursor_label}",
+                    f"Hands: {len(hands)} | Gesture: {gesture_name} | {cursor_label}",
                     (12, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 255, 0),
+                    2,
+                    cv2.LINE_AA,
+                )
+                cv2.putText(
+                    frame,
+                    action_label,
+                    (12, 58),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
                     (0, 255, 0),
