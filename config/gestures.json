@@ -1,0 +1,23 @@
+{
+  "camera": {
+    "index": 0,
+    "width": 1280,
+    "height": 720
+  },
+  "hand_tracking": {
+    "max_num_hands": 1,
+    "min_detection_confidence": 0.65,
+    "min_tracking_confidence": 0.6
+  },
+  "cursor": {
+    "smoothing": 0.7,
+    "control_region": [0.2, 0.2, 0.8, 0.8]
+  },
+  "gestures": {
+    "pinch_threshold": 0.38,
+    "pinch_confirmation_frames": 3,
+    "cooldown_seconds": 0.2,
+    "scroll_sensitivity": 1.0,
+    "fist_confirmation_frames": 3
+  }
+}

@@ -58,6 +58,15 @@ class MouseController:
         """Scroll vertically. Reserved for a later phase."""
         self._perform(self._pyautogui.scroll, amount)
 
+    def release_all(self) -> None:
+        """Release the primary button even if PyAutoGUI's fail-safe is active."""
+        fail_safe_was_enabled = self._pyautogui.FAILSAFE
+        try:
+            self._pyautogui.FAILSAFE = False
+            self._pyautogui.mouseUp()
+        finally:
+            self._pyautogui.FAILSAFE = fail_safe_was_enabled
+
     def _perform(self, operation: Any, *args: Any, **kwargs: Any) -> None:
         """Run one PyAutoGUI action and turn its emergency stop into an app error."""
         try:
