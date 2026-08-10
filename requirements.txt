@@ -1,0 +1,6 @@
+# Webcam capture and Phase 2 hand-landmark tracking
+opencv-python>=4.9,<5
+# 0.10.14 provides the stable real-time ``mp.solutions.hands`` API used here.
+# Later builds removed that API in favor of a model-file based tasks interface.
+mediapipe==0.10.14
+numpy>=1.26,<3
