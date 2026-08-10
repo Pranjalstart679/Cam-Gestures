@@ -3,7 +3,7 @@
 
 A local Windows desktop application that uses a normal webcam to make gesture-based control feel like a touchscreen. All processing runs on the laptop: there is no backend, cloud service, database, API, voice feature, or automatic keyboard shortcut.
 
-**Current implementation:** Phase 1 is complete. Phase 2 hand-tracking code is implemented; its local MediaPipe environment must be revalidated after the dependency repair described in [Troubleshooting](#troubleshooting). The app does not yet control the mouse or keyboard.
+**Current implementation:** Phases 1–3 are complete. Hand tracking is live; index-finger cursor movement is available only when explicitly enabled. Clicking, scrolling, dragging, and keyboard actions are not implemented.
 
 ## Current features
 
@@ -13,6 +13,7 @@ A local Windows desktop application that uses a normal webcam to make gesture-ba
 - Handles unavailable cameras and failed frame reads with a clear message.
 - Releases the camera and closes OpenCV windows on exit.
 - Uses `Esc` or `Q` to quit the preview.
+- Supports opt-in index-finger cursor movement with a visible control region and configurable exponential smoothing.
 
 ## Target architecture
 
@@ -31,7 +32,8 @@ Cam-Gestures/
 │   └── gesture_detector.py         # Later: landmarks -> semantic gestures
 ├── control/
 │   ├── __init__.py
-│   ├── mouse.py                    # Later: isolated PyAutoGUI mouse adapter
+│   ├── mouse.py                    # PyAutoGUI mouse adapter
+│   ├── cursor.py                   # Cursor mapping and smoothing
 │   ├── keyboard.py                 # Later: isolated keyboard adapter
 │   └── actions.py                  # Later: gesture event -> allowed desktop action
 ├── core/
@@ -72,6 +74,8 @@ Cam-Gestures/
 │   ├── camera.py           # Webcam ownership only
 │   └── hand_tracker.py     # MediaPipe hand landmarks only
 ├── control/                # Reserved for later desktop actions
+│   ├── cursor.py            # Cursor mapping and smoothing
+│   └── mouse.py             # PyAutoGUI mouse adapter
 ├── core/                   # Reserved for state management
 ├── ui/                     # Reserved for overlays/UI
 └── tests/                  # Non-hardware regression tests
@@ -108,6 +112,12 @@ Use a different camera or requested resolution when needed:
 .\.venv\Scripts\python.exe main.py --camera-index 1 --width 1280 --height 720
 ```
 
+To turn on cursor movement, use the explicit opt-in flag. It moves the cursor only; it never clicks or presses keys.
+
+```powershell
+.\.venv\Scripts\python.exe main.py --enable-cursor
+```
+
 Press `Esc` or `Q` in the preview window to close it. Closing the preview window also stops the program.
 
 ## Implementation status
@@ -115,8 +125,8 @@ Press `Esc` or `Q` in the preview window to close it. Closing the preview window
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 | Webcam capture, preview, safe release, `Esc`/`Q` exit | Complete |
-| 2 | MediaPipe hand detection, normalized landmarks, landmark drawing | Implemented; revalidate after dependency repair |
-| 3 | Index-finger cursor mapping, control region, smoothing | Not started |
+| 2 | MediaPipe hand detection, normalized landmarks, landmark drawing | Complete |
+| 3 | Index-finger cursor mapping, control region, smoothing | Complete; enabled only with `--enable-cursor` |
 | 4 | Pinch-to-click with transition detection and cooldown | Not started |
 | 5 | Two-finger scrolling | Not started |
 | 6 | Fist drag with guaranteed mouse release | Not started |
@@ -130,12 +140,11 @@ Press `Esc` or `Q` in the preview window to close it. Closing the preview window
 - **Unable to open camera:** close apps such as Teams, Zoom, or another camera preview that may be using it. Try `--camera-index 1` for an external webcam.
 - **No `py -3.12` command:** install Python 3.11 or 3.12 from python.org, then create the virtual environment with that installed version.
 - **Preview is black:** check Windows Settings → Privacy & security → Camera and allow desktop apps to access the camera.
-- **`module 'mediapipe' has no attribute 'solutions'`:** do not run a global `python main.py`. From the repository root, run ` .\.venv\Scripts\python.exe -m pip install --force-reinstall -r requirements.txt`, then use `.\.venv\Scripts\python.exe main.py`. This project pins MediaPipe 0.10.14 because later releases removed the hand-tracking API used here.
-- **`Ignoring invalid distribution ~ediapipe`:** this was left by an interrupted package replacement. Run the same forced reinstall command above before launching the app.
+- **`module 'mediapipe' has no attribute 'solutions'`:** do not run a global `python main.py`. From the repository root, run `.\.venv\Scripts\python.exe -m pip install --force-reinstall -r requirements.txt`, then use `.\.venv\Scripts\python.exe main.py`. This project pins MediaPipe 0.10.14 because later releases removed the hand-tracking API used here.
 
 ## Roadmap
 
-The next implementation phase is index-finger cursor movement with a configurable control region and smoothing. Gesture actions, PyAutoGUI, state transitions, and configuration must be built before any actual mouse control is enabled. Voice activation, cloud services, and automatic keyboard shortcuts remain intentionally out of scope.
+The next implementation phase is guarded pinch-to-click, using gesture transitions and a cooldown to prevent repeated clicks. Voice activation, cloud services, and automatic keyboard shortcuts remain intentionally out of scope.
 =======
 # Cam-Gestures
 Gestures contorlled webcam for control
