@@ -10,7 +10,7 @@ from vision.gesture_detector import Gesture, GestureObservation
 
 
 class MouseActions(Protocol):
-    """The subset of mouse operations required by this phase."""
+    """Mouse operations used by pinch-click and two-finger scroll."""
 
     def click(self) -> None: ...
 

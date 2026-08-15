@@ -44,11 +44,21 @@ class GestureConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class VoiceConfig:
+    enabled: bool
+    wake_phrase: str
+    stop_phrase: str
+    quit_phrase: str
+    model_path: Path
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     camera: CameraConfig
     hand_tracking: HandTrackingConfig
     cursor: CursorConfig
     gestures: GestureConfig
+    voice: VoiceConfig
 
 
 def load_config(path: Path) -> AppConfig:
@@ -66,6 +76,7 @@ def load_config(path: Path) -> AppConfig:
     tracking = _section(raw, "hand_tracking")
     cursor = _section(raw, "cursor")
     gestures = _section(raw, "gestures")
+    voice = _optional_section(raw, "voice")
     try:
         region_values = cursor["control_region"]
         if not isinstance(region_values, list) or len(region_values) != 4:
@@ -92,6 +103,7 @@ def load_config(path: Path) -> AppConfig:
                 scroll_sensitivity=_number(gestures, "scroll_sensitivity", minimum=0.000001),
                 fist_confirmation_frames=_integer(gestures, "fist_confirmation_frames", minimum=1),
             ),
+            voice=_load_voice(voice),
         )
     except KeyError as error:
         raise ConfigurationError(f"Missing configuration value: {error.args[0]}") from error
@@ -106,6 +118,43 @@ def _section(raw: dict[str, Any], name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ConfigurationError(f"Configuration section '{name}' must be an object.")
     return value
+
+
+def _optional_section(raw: dict[str, Any], name: str) -> dict[str, Any]:
+    value = raw.get(name)
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ConfigurationError(f"Configuration section '{name}' must be an object.")
+    return value
+
+
+def _load_voice(section: dict[str, Any]) -> VoiceConfig:
+    enabled = section.get("enabled", False)
+    if not isinstance(enabled, bool):
+        raise ConfigurationError("voice.enabled must be a boolean.")
+    wake_phrase = _optional_text(section, "wake_phrase", "activate")
+    stop_phrase = _optional_text(section, "stop_phrase", "stop")
+    quit_phrase = _optional_text(section, "quit_phrase", "quit")
+    model_value = section.get("model_path", "models/vosk-model-small-en-us")
+    if not isinstance(model_value, str) or not model_value.strip():
+        raise ConfigurationError("voice.model_path must be a non-empty string.")
+    return VoiceConfig(
+        enabled=enabled,
+        wake_phrase=wake_phrase,
+        stop_phrase=stop_phrase,
+        quit_phrase=quit_phrase,
+        model_path=Path(model_value),
+    )
+
+
+def _optional_text(section: dict[str, Any], name: str, default: str) -> str:
+    if name not in section:
+        return default
+    value = section[name]
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigurationError(f"voice.{name} must be a non-empty string.")
+    return value.strip()
 
 
 def _integer(section: dict[str, Any], name: str, minimum: int) -> int:

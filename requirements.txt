@@ -1,7 +1,9 @@
-# Webcam capture and Phase 2 hand-landmark tracking
+# Webcam capture and hand-landmark tracking
 opencv-python>=4.9,<5
-# 0.10.14 provides the stable real-time ``mp.solutions.hands`` API used here.
-# Later builds removed that API in favor of a model-file based tasks interface.
-mediapipe==0.10.14
+# MediaPipe Tasks API (HandLandmarker). Requires models/hand_landmarker.task.
+mediapipe>=1.0.1
 numpy>=1.26,<3
 pyautogui>=0.9.54
+# Optional offline voice activation (--enable-voice).
+vosk>=0.3.45
+sounddevice>=0.4.6

@@ -1,1 +1,1 @@
-"""Application state and shared core definitions (introduced in later phases)."""
+"""Application state, configuration, and session lifecycle."""

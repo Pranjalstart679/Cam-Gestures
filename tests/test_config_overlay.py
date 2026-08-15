@@ -19,6 +19,8 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(config.camera.index, 0)
         self.assertEqual(config.cursor.control_region.left, 0.2)
         self.assertEqual(config.gestures.pinch_confirmation_frames, 3)
+        self.assertFalse(config.voice.enabled)
+        self.assertEqual(config.voice.wake_phrase, "activate")
 
     def test_invalid_region_is_rejected(self) -> None:
         invalid = {
@@ -38,6 +40,26 @@ class ConfigurationTests(unittest.TestCase):
             config_path.write_text(json.dumps(invalid), encoding="utf-8")
             with self.assertRaises(ConfigurationError):
                 load_config(config_path)
+
+    def test_missing_voice_section_uses_defaults(self) -> None:
+        payload = {
+            "camera": {"index": 0, "width": 640, "height": 480},
+            "hand_tracking": {"max_num_hands": 1, "min_detection_confidence": 0.6, "min_tracking_confidence": 0.6},
+            "cursor": {"smoothing": 0.7, "control_region": [0.2, 0.2, 0.8, 0.8]},
+            "gestures": {
+                "pinch_threshold": 0.38,
+                "pinch_confirmation_frames": 3,
+                "cooldown_seconds": 0.2,
+                "scroll_sensitivity": 1.0,
+                "fist_confirmation_frames": 3,
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "no-voice.json"
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            config = load_config(config_path)
+            self.assertFalse(config.voice.enabled)
+            self.assertEqual(config.voice.wake_phrase, "activate")
 
 
 class DebugOverlayTests(unittest.TestCase):

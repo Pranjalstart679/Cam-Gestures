@@ -12,8 +12,13 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Downloaded speech models (too large for git)
+models/vosk-*/
+models/*.zip
+
 # IDE and operating-system files
-.vscode/
+.vscode/*
+!.vscode/launch.json
 .idea/
 Thumbs.db
 Desktop.ini

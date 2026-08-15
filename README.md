@@ -1,6 +1,8 @@
 # Gesture-Controlled Laptop Interface
 
-A local Windows desktop application that uses a normal webcam for touch-like hand-gesture control. All processing runs on the laptop: no backend, cloud service, database, API, voice feature, or automatic keyboard shortcut is included.
+A local Windows desktop application that uses a normal webcam for touch-like hand-gesture control. All processing runs on the laptop: no backend, cloud service, database, or API is required.
+
+The build plan for voice-activated, listen-first control is in [TASKS.md](TASKS.md).
 
 ## Features
 
@@ -11,12 +13,15 @@ A local Windows desktop application that uses a normal webcam for touch-like han
 - Fist dragging with a guaranteed button release when the gesture ends or the application exits.
 - Local JSON configuration and an OpenCV debug overlay.
 - Safe opt-in desktop control: preview is harmless unless the relevant flags are supplied.
+- Optional listen-first voice activation: camera stays off until a wake phrase or Space.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Camera["vision/camera.py"] --> Main["main.py"]
+    Voice["voice/listener.py"] --> Session["core/session.py"]
+    Session --> Camera["vision/camera.py"]
+    Camera --> Main["main.py"]
     Main --> Tracker["vision/hand_tracker.py"]
     Tracker --> Detector["vision/gesture_detector.py"]
     Detector --> State["core/state_manager.py"]
@@ -28,10 +33,13 @@ flowchart LR
 
 ```text
 Cam-Gestures/
-├── main.py                         # Application lifecycle and OpenCV preview loop
+├── main.py                         # Session loop: listening vs active camera
+├── TASKS.md                        # Build plan for voice-activated control
 ├── requirements.txt
+├── models/
+│   └── hand_landmarker.task        # MediaPipe HandLandmarker model bundle
 ├── config/
-│   └── gestures.json               # Camera and gesture-control settings
+│   └── gestures.json               # Camera, gesture, and voice settings
 ├── vision/
 │   ├── camera.py                   # Webcam ownership and frame reads
 │   ├── hand_tracker.py             # MediaPipe hand landmarks
@@ -42,8 +50,12 @@ Cam-Gestures/
 │   └── actions.py                  # Guarded click and scroll mappings
 ├── core/
 │   ├── config.py                   # JSON loading and validation
-│   ├── constants.py                # Application states
+│   ├── constants.py                # Gesture and session states
+│   ├── session.py                  # Idle/active camera lifecycle
 │   └── state_manager.py            # Debounce, drag, and cooldown transitions
+├── voice/
+│   ├── commands.py                 # Wake/stop/quit phrase matching
+│   └── listener.py                 # Offline Vosk microphone thread
 ├── ui/
 │   └── overlay.py                  # Runtime diagnostic overlay
 └── tests/                          # Non-hardware unit tests
@@ -64,6 +76,15 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
+Download the hand landmarker model into `models/`:
+
+```powershell
+New-Item -ItemType Directory -Force -Path models
+Invoke-WebRequest `
+  -Uri "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" `
+  -OutFile "models\hand_landmarker.task"
+```
+
 If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` directly in the commands below.
 
 ## Run
@@ -77,10 +98,29 @@ Preview and diagnostics only:
 Enable all implemented controls:
 
 ```powershell
-.\.venv\Scripts\python.exe main.py --enable-cursor --enable-gesture-actions
+.\.venv\Scripts\python.exe main.py --hands-free
 ```
 
-Press `Esc` or `Q` in the preview to exit. The mouse button is released during all normal exit paths. PyAutoGUI's corner fail-safe also stops desktop actions.
+Listen first (camera off until you say **activate** or press Space):
+
+```powershell
+.\.venv\Scripts\python.exe main.py --enable-voice --hands-free
+```
+
+Voice uses an offline Vosk model. Download a small English model and unpack it to `models/vosk-model-small-en-us` (the folder that contains `am/` and `conf/`):
+
+```powershell
+New-Item -ItemType Directory -Force -Path models
+Invoke-WebRequest `
+  -Uri "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip" `
+  -OutFile "models\vosk-model-small-en-us.zip"
+Expand-Archive models\vosk-model-small-en-us.zip -DestinationPath models
+Rename-Item models\vosk-model-small-en-us-0.15 models\vosk-model-small-en-us
+```
+
+Allow microphone access in Windows Settings → Privacy & security → Microphone.
+
+Press `Esc` to pause (voice mode) or quit (preview mode). Press `Q` to exit. The mouse button is released during all normal exit paths. PyAutoGUI's corner fail-safe also stops desktop actions.
 
 ## Gesture mappings
 
@@ -101,6 +141,7 @@ Edit [config/gestures.json](config/gestures.json) to set:
 - Cursor smoothing and control region
 - Pinch threshold, confirmation frames, and cooldown
 - Scroll sensitivity and fist confirmation frames
+- Voice enable flag, wake/stop/quit phrases, and Vosk model path
 
 Command-line options override individual settings. For example:
 
@@ -127,18 +168,23 @@ The preview displays FPS, hand presence, gesture, application state, normalized 
 | 7. Explicit state manager | Complete |
 | 8. JSON configuration | Complete |
 | 9. Debug overlay | Complete |
+| 10. Idle/active sessions | Complete |
+| 11. Voice wake/stop | Complete (needs Vosk model download) |
 
 ## Troubleshooting
 
 - **Camera cannot open:** close Teams, Zoom, or any other app using the camera. Try `--camera-index 1` for an external webcam.
-- **`module 'mediapipe' has no attribute 'solutions'`:** use the project virtual environment and reinstall: `.\.venv\Scripts\python.exe -m pip install --force-reinstall -r requirements.txt`.
+- **`Hand landmarker model not found`:** download `hand_landmarker.task` into `models/` (see Installation).
 - **Preview is black:** enable desktop-app camera access in Windows Settings → Privacy & security → Camera.
 - **Control is too sensitive:** increase `cursor.smoothing`, reduce `scroll_sensitivity`, or make the `cursor.control_region` smaller.
+- **Voice does not start:** install `vosk` and `sounddevice`, allow microphone access, and confirm `models/vosk-model-small-en-us` exists. Space still starts the camera if the listener is running.
 
-## Future roadmap
+## Roadmap
 
-- PySide6 settings GUI, profiles, and alternative control modes.
-- Improved/customizable gesture recognition.
-- Optional voice activation in a later version.
+Tracked in [TASKS.md](TASKS.md):
 
-Voice activation, cloud services, LLM integration, and destructive keyboard shortcuts are intentionally not implemented in this version.
+- Idle/active sessions so the camera stays off until you activate control
+- Offline voice wake/stop phrases
+- VS Code launch configs and a later settings GUI
+
+Cloud services, LLM integration, and destructive keyboard shortcuts stay out of scope.

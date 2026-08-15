@@ -19,5 +19,12 @@
     "cooldown_seconds": 0.2,
     "scroll_sensitivity": 1.0,
     "fist_confirmation_frames": 3
+  },
+  "voice": {
+    "enabled": false,
+    "wake_phrase": "activate",
+    "stop_phrase": "stop",
+    "quit_phrase": "quit",
+    "model_path": "models/vosk-model-small-en-us"
   }
 }

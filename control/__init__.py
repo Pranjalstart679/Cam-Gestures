@@ -1,1 +1,1 @@
-"""Desktop-control adapters (introduced in later phases)."""
+"""Desktop-control adapters for cursor, click, scroll, and drag."""

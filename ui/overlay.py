@@ -20,6 +20,8 @@ class DebugInfo:
     pinch_ratio: float | None
     cursor_label: str
     action_label: str
+    session_label: str = ""
+    voice_label: str = ""
 
 
 class DebugOverlay:
@@ -52,9 +54,11 @@ class DebugOverlay:
             f"Pinch ratio: {pinch_text}",
             info.cursor_label,
             info.action_label,
+            *([info.session_label] if info.session_label else []),
+            *([info.voice_label] if info.voice_label else []),
         )
         panel_height = 28 + 25 * len(lines)
-        cv2.rectangle(frame, (6, 6), (530, panel_height), (20, 20, 20), -1)
+        cv2.rectangle(frame, (6, 6), (640, panel_height), (20, 20, 20), -1)
         for index, line in enumerate(lines):
             cv2.putText(
                 frame,

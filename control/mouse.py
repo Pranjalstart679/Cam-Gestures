@@ -35,27 +35,27 @@ class MouseController:
         self._perform(self._pyautogui.moveTo, bounded_x, bounded_y, duration=0)
 
     def click(self) -> None:
-        """Perform one left click. Reserved for a later phase."""
+        """Perform one left click."""
         self._perform(self._pyautogui.click)
 
     def right_click(self) -> None:
-        """Perform one right click. Reserved for a later phase."""
+        """Perform one right click."""
         self._perform(self._pyautogui.rightClick)
 
     def double_click(self) -> None:
-        """Perform one double click. Reserved for a later phase."""
+        """Perform one double click."""
         self._perform(self._pyautogui.doubleClick)
 
     def mouse_down(self) -> None:
-        """Hold the primary mouse button. Reserved for a later phase."""
+        """Hold the primary mouse button."""
         self._perform(self._pyautogui.mouseDown)
 
     def mouse_up(self) -> None:
-        """Release the primary mouse button. Reserved for a later phase."""
+        """Release the primary mouse button."""
         self._perform(self._pyautogui.mouseUp)
 
     def scroll(self, amount: int) -> None:
-        """Scroll vertically. Reserved for a later phase."""
+        """Scroll vertically."""
         self._perform(self._pyautogui.scroll, amount)
 
     def release_all(self) -> None:

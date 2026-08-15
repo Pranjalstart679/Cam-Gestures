@@ -1,1 +1,1 @@
-"""User-interface components (introduced in later phases)."""
+"""OpenCV preview overlay."""
